@@ -24,6 +24,12 @@ const wsl: WslStatus = {
 const bothShells = runtimeStatus({ gitBash, wsl, recommended: 'git-bash' })
 
 describe('Agent Windows Shell 运行环境', () => {
+  test('未打包独立 CLI 时，覆盖从旧应用继承的 PROMA_CLI', () => {
+    const oldCli = '/Applications/old-app/Contents/Resources/bin/proma'
+    const result = buildAgentRuntimeEnv({ bundledCliPath: '', processEnv: { PROMA_CLI: oldCli } })
+    expect(mergeRuntimeEnv({ PROMA_CLI: oldCli }, result.env).PROMA_CLI).toBe('')
+  })
+
   test('Given Git Bash 与 WSL 均可用 When 使用默认策略 Then 优先使用 Git Bash', () => {
     const result = buildAgentRuntimeEnv({
       bundledCliPath: '',

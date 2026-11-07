@@ -31,12 +31,12 @@ static NSString *json(id object) { NSError *error = nil; NSData *data = [NSJSONS
 static NSNumber *number(NSDictionary *payload, NSString *key) { id value = payload[key]; return [value isKindOfClass:[NSNumber class]] ? value : nil; }
 static NSString *string(NSDictionary *payload, NSString *key) { id value = payload[key]; return [value isKindOfClass:[NSString class]] ? value : nil; }
 static NSDate *date(NSNumber *milliseconds) { return [NSDate dateWithTimeIntervalSince1970:milliseconds.doubleValue / 1000.0]; }
-static NSURL *identityURL(NSString *entity, NSString *identity) { return identity ? [NSURL URLWithString:[NSString stringWithFormat:@"proma://planning/%@/%@", entity, identity]] : nil; }
+static NSURL *identityURL(NSString *entity, NSString *identity) { return identity ? [NSURL URLWithString:[NSString stringWithFormat:@"proma-agent-next://planning/%@/%@", entity, identity]] : nil; }
 static NSDictionary *itemResponse(EKCalendarItem *item) { return @{ @"calendarItemIdentifier": item.calendarItemIdentifier ?: @"", @"calendarItemExternalIdentifier": item.calendarItemExternalIdentifier ?: @"" }; }
 static NSNumber *milliseconds(NSDate *value) { return value ? @((long long)llround(value.timeIntervalSince1970 * 1000.0)) : nil; }
 // 只回传 Proma 自己写入的严格 UUID marker；用户的任意 EventKit URL 不得进入 JS 层。
 static NSString *promaIdentity(NSString *entity, EKCalendarItem *item) {
-  NSString *prefix = [NSString stringWithFormat:@"proma://planning/%@/", entity];
+  NSString *prefix = [NSString stringWithFormat:@"proma-agent-next://planning/%@/", entity];
   NSString *absolute = item.URL.absoluteString;
   if (![absolute hasPrefix:prefix]) return nil;
   NSString *identity = [absolute substringFromIndex:prefix.length];

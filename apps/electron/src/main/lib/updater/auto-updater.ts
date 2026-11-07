@@ -14,6 +14,10 @@ import { createIdleInstallScheduler } from './idle-install-scheduler'
 import { isNewerVersion } from './version'
 import { createUpdateCacheCleanup, getDefaultUpdaterBaseCacheDirectory, shouldDeferUpdateCacheCleanup } from './update-cache-cleanup'
 
+// 独立构建尚未配置自己的签名发布源；不能下载或安装上游 Proma 更新。
+const INDEPENDENT_UPDATE_SOURCE_CONFIGURED = false
+const INDEPENDENT_UPDATE_DISABLED_MESSAGE = '独立版本尚未配置更新源，请从本项目的仓库获取更新。'
+
 /** 当前更新状态 */
 let currentStatus: UpdateStatus = { status: 'idle' }
 
@@ -108,6 +112,10 @@ export function getUpdateStatus(): UpdateStatus {
 
 /** 手动触发检查更新 */
 export async function checkForUpdates(): Promise<void> {
+  if (!INDEPENDENT_UPDATE_SOURCE_CONFIGURED) {
+    setStatus({ status: 'error', error: INDEPENDENT_UPDATE_DISABLED_MESSAGE })
+    return
+  }
   // 下载未完成时不能启动第二次下载；已下载版本仍需检查，以便追赶随后发布的新版。
   if (currentStatus.status === 'downloading') {
     console.log('[更新] 跳过检查：正在下载更新')
@@ -142,6 +150,7 @@ export async function checkForUpdates(): Promise<void> {
  * @returns 是否已接受请求；仅 downloaded 状态可排队。
  */
 export function installWhenIdle(): boolean {
+  if (!INDEPENDENT_UPDATE_SOURCE_CONFIGURED) return false
   if (currentStatus.status !== 'downloaded') {
     console.warn('[更新] 跳过空闲安装：当前没有已下载的更新')
     return false
@@ -218,6 +227,10 @@ export function cleanupUpdater(): void {
  */
 export function initAutoUpdater(mainWindow: BrowserWindow): void {
   configureUpdater(mainWindow)
+  if (!INDEPENDENT_UPDATE_SOURCE_CONFIGURED) {
+    console.info('[更新] 独立版本未配置更新源，已禁用自动检查和缓存清理。')
+    return
+  }
 
   const updateCacheCleanup = createUpdateCacheCleanup({
     stateFilePath: join(app.getPath('userData'), 'updater-cache-state.json'),

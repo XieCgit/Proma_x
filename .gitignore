@@ -32,6 +32,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.test.local
 .env.production.local
 .env.local
+# 忽略所有 .env 密钥变体，但保留配置模板
+.env.*
+!.env.example
 
 # caches
 .eslintcache
@@ -62,3 +65,6 @@ pnpm-workspace.yaml
 # Proma 会话/工作区文档（不应入仓，见 AGENTS.md 红线）
 .context/
 .bitfun/
+
+# 本地私有开发工具与沙箱目录
+.local/

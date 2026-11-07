@@ -79,7 +79,7 @@ register({
         maxBytes,
         turns: allTurns.length,
         written: fallback,
-        hint: '输出过大已落盘。用 --turns A-B / --head N / --tail N 取片段，或 --stdout 强制全量，或 --out 指定路径。先跑 `proma session outline <id>` 看结构。',
+        hint: '输出过大已落盘。用 --turns A-B / --head N / --tail N 取片段，或 --stdout 强制全量，或 --out 指定路径。先跑 `proma-agent-next session outline <id>` 看结构。',
       }
       if (ctx.json) {
         emitJson(result)

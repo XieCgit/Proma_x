@@ -14,6 +14,7 @@ import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import AdmZip from 'adm-zip'
 import { DOMParser } from '@xmldom/xmldom'
+import { INDEPENDENT_PREVIEW_TEMP_DIR } from '@proma/shared/config'
 import type { FilePreviewReadResult, OfficePreviewResult } from '@proma/shared'
 import { getBundledOfficeCliPath } from './officecli-manager'
 import { expandHomeDirectory } from './agent-file-path'
@@ -38,7 +39,7 @@ const execFileAsync = promisify(execFile)
 // ─── 临时文件 ───
 
 function getPreviewTmpDir(): string {
-  const dir = join(tmpdir(), 'proma-preview')
+  const dir = join(tmpdir(), INDEPENDENT_PREVIEW_TEMP_DIR)
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }
@@ -72,7 +73,7 @@ function removeTempFileLater(path: string): void {
 
 /** 清理所有临时预览文件 */
 export function cleanPreviewTmpDir(): number {
-  const dir = join(tmpdir(), 'proma-preview')
+  const dir = join(tmpdir(), INDEPENDENT_PREVIEW_TEMP_DIR)
   if (!existsSync(dir)) return 0
   let count = 0
   try {

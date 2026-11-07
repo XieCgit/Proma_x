@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, shell } from 'electron'
+import { BrowserWindow, screen, shell } from 'electron'
 import { existsSync } from 'node:fs'
 import { AGENT_IPC_CHANNELS } from '@proma/shared'
 import { join } from 'node:path'
@@ -37,14 +37,6 @@ function getInitialBounds(): Electron.Rectangle {
   }
 }
 
-function isDevServerNavigation(url: string): boolean {
-  try {
-    return new URL(url).origin === 'http://127.0.0.1:5173'
-  } catch {
-    return false
-  }
-}
-
 function createWorkspaceMemoryWindow(workspaceSlug: string, relativePath?: string): BrowserWindow {
   const isMac = process.platform === 'darwin'
   const isWindows = process.platform === 'win32'
@@ -74,21 +66,15 @@ function createWorkspaceMemoryWindow(workspaceSlug: string, relativePath?: strin
   })
   windowsByWorkspace.set(workspaceSlug, win)
 
-  const isDev = !app.isPackaged
-  if (isDev) {
-    void win.loadURL(`http://127.0.0.1:5173?window=workspace-memory&workspace=${encodeURIComponent(workspaceSlug)}${relativePath ? `&file=${encodeURIComponent(relativePath)}` : ''}`)
-  } else {
-    void win.loadFile(join(__dirname, 'renderer', 'index.html'), {
-      query: { window: 'workspace-memory', workspace: workspaceSlug, ...(relativePath ? { file: relativePath } : {}) },
-    })
-  }
+  void win.loadFile(join(__dirname, 'renderer', 'index.html'), {
+    query: { window: 'workspace-memory', workspace: workspaceSlug, ...(relativePath ? { file: relativePath } : {}) },
+  })
 
   win.once('ready-to-show', () => {
     win.show()
     win.focus()
   })
   win.webContents.on('will-navigate', (event, url) => {
-    if (isDev && isDevServerNavigation(url)) return
     event.preventDefault()
     if (url.startsWith('http://') || url.startsWith('https://')) void shell.openExternal(url)
   })

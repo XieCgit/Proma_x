@@ -1098,6 +1098,7 @@ function buildPromaProductToolDefinitions(sdk: PiSdk, canUseTool: PiAgentQueryOp
 
 const WSL_EXPORT_ENV_KEYS = [
   'PROMA_CLI',
+  'PROMA_DEV',
   'HTTP_PROXY',
   'HTTPS_PROXY',
   'ALL_PROXY',
@@ -1126,6 +1127,11 @@ function buildWslCommand(command: string, env: NodeJS.ProcessEnv | undefined): s
   const exportLines: string[] = []
   for (const key of WSL_EXPORT_ENV_KEYS) {
     const rawValue = env?.[key]
+    // 空 PROMA_CLI 是独立开发版显式禁止继承宿主旧应用路径的信号。
+    if (key === 'PROMA_CLI' && rawValue === '') {
+      exportLines.push('unset PROMA_CLI')
+      continue
+    }
     if (!rawValue) continue
     const value = key === 'PROMA_CLI' ? windowsPathToWslPath(rawValue) : rawValue
     exportLines.push(`export ${key}=${shellQuote(value)}`)

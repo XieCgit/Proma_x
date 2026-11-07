@@ -1,7 +1,7 @@
 ---
 name: tool-builder
 description: 交互式创建和管理 Chat 模式的自定义 HTTP 工具。当用户想要创建新的 API 工具、配置 Chat 工具、添加自定义工具、管理自定义工具、或说"帮我创建一个 XX 工具"时使用此 Skill。也适用于调试、修复或删除已有的自定义工具。
-version: "1.0.1"
+version: "1.0.2"
 ---
 # Tool Builder
 
@@ -22,7 +22,11 @@ version: "1.0.1"
 
 ### 2. 构建配置
 
-根据收集的信息构建工具配置 JSON。配置文件位于 `~/.proma/chat-tools.json`。
+根据收集的信息构建工具配置 JSON。必须根据实际运行模式与系统上下文选择对应的独立应用配置文件路径：
+- **生产/默认模式**：`~/.proma-agent-next/chat-tools.json`
+- **开发模式**（如设置 `PROMA_DEV=1` 或处于开发环境）：`~/.proma-agent-next-dev/chat-tools.json`
+
+> **安全隔离提示**：明确不得访问或写入原版数据目录（如 `~/.proma` 或 `~/.proma-dev`），除非用户明确单独授权。
 
 #### 配置文件结构
 
@@ -90,7 +94,7 @@ version: "1.0.1"
 ### 3. 写入配置
 
 操作步骤：
-1. 读取 `~/.proma/chat-tools.json`（如不存在则创建）
+1. 按实际运行模式与系统上下文确定路径（生产默认 `~/.proma-agent-next/chat-tools.json`，开发环境 `~/.proma-agent-next-dev/chat-tools.json`；不得访问原版 `~/.proma` 目录），读取该文件（如不存在则创建）
 2. 将新工具追加到 `customTools` 数组（按 `id` 去重）
 3. 在 `toolStates` 中添加 `{ "enabled": true }` 使其默认启用
 4. 写回文件（保持 JSON 格式化）

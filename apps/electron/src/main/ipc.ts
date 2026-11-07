@@ -10,6 +10,9 @@ import { existsSync, realpathSync, readFileSync, writeFileSync, mkdirSync, statS
 import { realpath, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
+import { createPromptEnhancementRuntime } from './lib/prompt-enhancement-runtime'
+import { registerPromptEnhancementIpc } from './lib/prompt-enhancement-ipc'
+import { INDEPENDENT_PREVIEW_TEMP_DIR } from '@proma/shared/config'
 import { IPC_CHANNELS, CHANNEL_IPC_CHANNELS, CHAT_IPC_CHANNELS, AGENT_IPC_CHANNELS, AGENT_ISLAND_IPC_CHANNELS, ENVIRONMENT_IPC_CHANNELS, INSTALLER_IPC_CHANNELS, PROXY_IPC_CHANNELS, GITHUB_RELEASE_IPC_CHANNELS, SYSTEM_PROMPT_IPC_CHANNELS, CHAT_TOOL_IPC_CHANNELS, FEISHU_IPC_CHANNELS, DINGTALK_IPC_CHANNELS, SLACK_IPC_CHANNELS, WECHAT_IPC_CHANNELS, AUTOMATION_IPC_CHANNELS, PLANNING_IPC_CHANNELS, VAULT_IPC_CHANNELS, PLANNING_CONFLICT_ERROR, MAX_ATTACHMENT_SIZE, isPromaPermissionMode, normalizePathForCompare, removeMcpServerFromConfig, TERMINAL_IPC_CHANNELS } from '@proma/shared'
 import { USER_PROFILE_IPC_CHANNELS, SETTINGS_IPC_CHANNELS, SCRATCH_PAD_IPC_CHANNELS, QUICK_TASK_IPC_CHANNELS, VOICE_DICTATION_IPC_CHANNELS, APP_ICON_IPC_CHANNELS, DOCK_BADGE_IPC_CHANNELS, STORAGE_IPC_CHANNELS, WINDOWS_AGENT_ISLAND_IPC_CHANNELS, TRAY_IPC_CHANNELS } from '../types'
 import type {
@@ -304,7 +307,7 @@ import { permissionService } from './lib/agent-permission-service'
 import { resolvePathAgainstAgentCwd } from './lib/agent-file-path'
 import { askUserService } from './lib/agent-ask-user-service'
 import { exitPlanService } from './lib/agent-exit-plan-service'
-import { getAgentSessionWorkspacePath, getAgentWorkspacesDir, getConfigDir, getWorkspaceSkillsDir, getScratchPadPath } from './lib/config-paths'
+import { getAgentSessionWorkspacePath, getAgentWorkspacesDir, getConfigDir, getConfigDirName, getWorkspaceSkillsDir, getScratchPadPath } from './lib/config-paths'
 import { getCachedDefaultAppInfo, saveCachedDefaultAppInfo } from './lib/default-app-cache'
 import { calculateStorageStats, cleanupStorage, cleanupTempFiles } from './lib/storage-service'
 import type { CleanupOptions } from './lib/storage-service'
@@ -488,7 +491,7 @@ function realpathOrResolve(path: string): string {
 function getAuthorizedRoots(options?: FileAccessOptions): string[] {
   const roots: string[] = [
     getAgentWorkspacesDir(),
-    join(tmpdir(), 'proma-preview'),
+    join(tmpdir(), INDEPENDENT_PREVIEW_TEMP_DIR),
   ]
 
   const workspaceSlugs = new Set<string>()
@@ -1396,6 +1399,9 @@ async function withOAuthDeviceCodeQr<T extends CodexOAuthDeviceCode | GithubCopi
 }
 
 export function registerIpcHandlers(): void {
+  // 文本仅在用户明确触发增强时发送；主进程保管渠道凭据。
+  registerPromptEnhancementIpc({ ipcMain, getMainWindow, runtime: createPromptEnhancementRuntime() })
+
   // ===== 本地终端（仅主 renderer 可操作，不能指定可执行文件） =====
   const assertMainTerminalRenderer = (senderId: number): void => {
     const mainWindow = getMainWindow()
@@ -1406,7 +1412,7 @@ export function registerIpcHandlers(): void {
   const assertMainSettingsRenderer = (senderId: number): void => {
     const mainWindow = getMainWindow()
     if (!mainWindow || mainWindow.webContents.id !== senderId) {
-      throw new Error('仅主窗口可以访问 Slack Bot 设置。')
+      throw new Error('仅主窗口可以访问此设置。')
     }
   }
   ipcMain.handle(TERMINAL_IPC_CHANNELS.CREATE, async (event, input) => {
@@ -4101,7 +4107,7 @@ export function registerIpcHandlers(): void {
       const { existsSync, mkdirSync } = await import('node:fs')
       const { writeFile } = await import('node:fs/promises')
 
-      const tmpDir = join(tmpdir(), 'proma-preview')
+      const tmpDir = join(tmpdir(), INDEPENDENT_PREVIEW_TEMP_DIR)
       if (!existsSync(tmpDir)) {
         mkdirSync(tmpDir, { recursive: true })
       }
@@ -5659,7 +5665,14 @@ export function registerIpcHandlers(): void {
 
   // ===== 数据迁移 =====
 
-  ipcMain.handle('migration:open-data-folder', async (): Promise<void> => {
+  // 由主进程提供真实运行模式；不能依赖构建时的 import.meta.env.DEV。
+  ipcMain.handle('migration:get-config-dir-name', (event): string => {
+    assertMainSettingsRenderer(event.sender.id)
+    return getConfigDirName()
+  })
+
+  ipcMain.handle('migration:open-data-folder', async (event): Promise<void> => {
+    assertMainSettingsRenderer(event.sender.id)
     const dataDir = getConfigDir()
     const error = await shell.openPath(dataDir)
     if (error) throw new Error(`无法打开 Proma 数据文件夹：${error}`)

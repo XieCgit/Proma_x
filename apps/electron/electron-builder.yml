@@ -1,8 +1,8 @@
 # electron-builder 配置
 # 文档: https://www.electron.build/configuration/configuration
 
-appId: com.proma.app
-productName: Proma
+appId: local.proma.agentnext
+productName: Proma Agent Next
 copyright: Copyright © 2024-2026 Erlich Liu
 
 # Electron 版本（CI 环境 bun workspace 下无法自动检测，需显式指定）
@@ -158,12 +158,12 @@ nsis:
 # ============================================
 linux:
   icon: resources/icon.png
-  executableName: proma
+  executableName: proma-agent-next
   desktop:
-    StartupWMClass: proma
+    StartupWMClass: proma-agent-next
   category: Development
   synopsis: 本地优先的 AI 桌面 Agent
-  description: Proma 把多模型 Chat、通用 Agent、工作区、Skills、MCP 与记忆能力放进同一个开源客户端，数据和配置默认留在本地（~/.proma/）。
+  description: Proma Agent Next 是基于上游开源社区版的独立构建，默认使用独立的数据目录（~/.proma-agent-next/）。
   maintainer: ErlichLiu <erlichliu@gmail.com>
   target:
     - target: AppImage
@@ -181,7 +181,7 @@ appImage:
     - --no-sandbox
 
 deb:
-  packageName: proma
+  packageName: proma-agent-next
   afterInstall: resources/linux/deb-after-install.sh
   # 以 Ubuntu 22.04 为首个支持目标；显式声明，避免 electron-builder 的历史默认
   # 依赖（如已废弃的 gconf2/libappindicator1）进入新包。
@@ -200,13 +200,10 @@ deb:
     - libxkbcommon0
     - libxrandr2
     - libxss1
-  artifactName: proma_${version}_${arch}.${ext}
+  artifactName: proma-agent-next_${version}_${arch}.${ext}
 
 # ============================================
 # 发布配置
-# 每个平台的 build job 通过 --publish always 直接上传到 GitHub Release。
+# 独立仓库尚未配置发布源；不得使用上游的发布或更新地址。
 # ============================================
-publish:
-  provider: github
-  owner: proma-ai
-  repo: Proma
+publish: null

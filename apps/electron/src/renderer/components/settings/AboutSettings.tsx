@@ -21,7 +21,6 @@ import { EnvironmentCheckCard } from '@/components/environment/EnvironmentCheckC
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { ReleaseNotesViewer } from './ReleaseNotesViewer'
-import { VersionHistory } from './VersionHistory'
 
 /** 从 package.json 构建时由 Vite define 注入 */
 declare const __APP_VERSION__: string
@@ -481,8 +480,8 @@ function ShellEnvironmentCard(): React.ReactElement | null {
 export function AboutSettings(): React.ReactElement {
   return (
     <SettingsSection
-      title="关于 Proma"
-      description="集成通用 AI Agent 的下一代人工智能软件"
+      title="关于 Proma Agent Next"
+      description="基于 Proma 开源社区版的独立构建"
     >
       <SettingsCard>
         <SettingsRow label="版本">
@@ -493,7 +492,7 @@ export function AboutSettings(): React.ReactElement {
         </SettingsRow>
         <SettingsRow
           label="开源协议"
-          description="社区版基于 AGPL-3.0 开源，商业授权请联系 erlichliu@gmail.com"
+          description="本独立构建保留上游 AGPL-3.0 许可与版权声明"
         >
           <a
             href="https://www.gnu.org/licenses/agpl-3.0.html"
@@ -504,7 +503,7 @@ export function AboutSettings(): React.ReactElement {
             AGPL-3.0
           </a>
         </SettingsRow>
-        <SettingsRow label="项目地址">
+        <SettingsRow label="开源上游" description="本独立仓库的发布地址尚未配置">
           <a
             href="https://github.com/proma-ai/Proma.git"
             target="_blank"
@@ -519,8 +518,7 @@ export function AboutSettings(): React.ReactElement {
       {/* 自动更新卡片（updater 不可用时不渲染） */}
       <UpdateCard />
 
-      {/* 版本历史 */}
-      <VersionHistory />
+      <p className="text-sm text-muted-foreground">独立版更新源尚未配置，自动更新已停用。</p>
 
       {/* 环境检测卡片 */}
       <EnvironmentCard />

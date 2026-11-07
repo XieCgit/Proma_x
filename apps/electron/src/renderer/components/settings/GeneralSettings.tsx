@@ -77,7 +77,7 @@ export function GeneralSettings(): React.ReactElement {
   const [archiveAfterDays, setArchiveAfterDays] = React.useState<number>(7)
   /** Git/PR 推广标识：默认开启 */
   const [gitAttributionEnabled, setGitAttributionEnabled] = React.useState(true)
-  const [agentIslandEnabled, setAgentIslandEnabled] = React.useState(true)
+  const [agentIslandEnabled, setAgentIslandEnabled] = React.useState(false)
   const isMac = React.useMemo(() => detectIsMac(), [])
   const isWindows = React.useMemo(() => detectIsWindows(), [])
   const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -87,7 +87,7 @@ export function GeneralSettings(): React.ReactElement {
     window.electronAPI.getSettings().then((settings) => {
       setArchiveAfterDays(settings.archiveAfterDays ?? 7)
       setGitAttributionEnabled(settings.gitAttributionEnabled ?? true)
-      setAgentIslandEnabled(settings.agentIsland?.enabled ?? true)
+      setAgentIslandEnabled(settings.agentIsland?.enabled ?? false)
     }).catch(console.error)
   }, [])
 

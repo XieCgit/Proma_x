@@ -1286,9 +1286,17 @@ export interface ElectronAPI {
   /** 订阅菜单栏创建会话事件 */
   onTrayCreateSession: (callback: (data: TrayCreateSessionData) => void) => () => void
 
+  // ===== 提示词增强（凭据保留在主进程） =====
+  enhancePrompt: (input: { requestId: string; channelId: string; modelId: string; draft: string }) => Promise<
+    { success: true; text: string } | { success: false; code: string }
+  >
+  cancelPromptEnhancement: (requestId: string) => Promise<boolean>
+
   // ===== 数据迁移 =====
 
-  /** 在系统文件管理器中打开 Proma 数据文件夹 */
+  /** 查询当前独立应用实际使用的数据目录名称。 */
+  getIndependentConfigDirName: () => Promise<string>
+  /** 在系统文件管理器中打开独立版数据文件夹 */
   openMigrationDataFolder: () => Promise<void>
 
   // ===== 存储管理 =====
@@ -2999,6 +3007,9 @@ const electronAPI: ElectronAPI = {
     return () => { ipcRenderer.removeListener(TRAY_IPC_CHANNELS.CREATE_SESSION, listener) }
   },
 
+  enhancePrompt: (input) => ipcRenderer.invoke('prompt-enhancement:enhance', input),
+  cancelPromptEnhancement: (requestId) => ipcRenderer.invoke('prompt-enhancement:cancel', requestId),
+  getIndependentConfigDirName: () => ipcRenderer.invoke('migration:get-config-dir-name'),
   openMigrationDataFolder: () => ipcRenderer.invoke('migration:open-data-folder'),
 
   // ===== 存储管理 =====

@@ -34,7 +34,7 @@ const repoRoot = resolve(electronDir, '../..')
 const cliEntry = join(repoRoot, 'apps/cli/src/index.ts')
 
 const isWindows = process.platform === 'win32'
-const binName = isWindows ? 'proma.exe' : 'proma'
+const binName = isWindows ? 'proma-agent-next.exe' : 'proma-agent-next'
 const outDir = join(electronDir, 'resources/bin')
 const outFile = join(outDir, binName)
 

@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs'
 import { delimiter, dirname, join, win32 } from 'node:path'
 import type { RuntimeStatus, WindowsShellPreference } from '@proma/shared'
-import { getBundledCliPath } from './config-paths'
+import { getBundledCliPath, getConfigDirName } from './config-paths'
+import { getIndependentConfigDirName } from '@proma/shared/config'
 import { selectWindowsShell, type WindowsShellKind } from './windows-shell-selection'
 
 export type AgentRuntimeShellKind = WindowsShellKind
@@ -33,6 +34,7 @@ const CASE_INSENSITIVE_MERGE_KEYS = new Set([
   'all_proxy',
   'no_proxy',
   'proma_cli',
+  'proma_dev',
   'claude_code_shell',
   'shell',
   'proma_windows_shell',
@@ -186,10 +188,11 @@ export function buildAgentRuntimeEnv(options: BuildAgentRuntimeEnvOptions = {}):
   const pathDelimiter = options.pathDelimiter ?? delimiter
   const pathExists = options.pathExists ?? existsSync
   const bundledCliPath = options.bundledCliPath ?? getBundledCliPath()
-  const env: Record<string, string> = {}
-
-  if (bundledCliPath) {
-    env.PROMA_CLI = bundledCliPath
+  const env: Record<string, string> = {
+    // CLI 不能像主进程那样读取 app.isPackaged；明确传递同一独立数据命名空间。
+    PROMA_DEV: getConfigDirName() === getIndependentConfigDirName(true) ? '1' : '0',
+    // 开发态没有自带 CLI 时明确清空继承值，绝不能误用旧应用注入的 PROMA_CLI。
+    PROMA_CLI: bundledCliPath || '',
   }
 
   const pathKey = getPathKey(processEnv)

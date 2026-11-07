@@ -1,16 +1,27 @@
 # session-cleaner CLI 参考
 
-本技能是 `proma` CLI 的薄封装。本文件给维护者解释**底层格式**与**CLI 行为**，便于排查问题。
+本技能是独立构建 CLI（一律优先 `"$PROMA_CLI"`，无注入时只能使用已验证属于本独立构建的 `proma-agent-next`；禁止回退到系统 PATH 的裸 `proma`）的薄封装。本文件给维护者解释**底层格式**与**CLI 行为**，便于排查问题。
 真正的解析逻辑在 `@proma/session-core`（仓库内唯一真源），不要在技能里重抄。
 
 ## 会话存储
 
+按实际运行模式与系统上下文严格选择会话数据目录：
+
+**生产/默认模式**：
 ```
-~/.proma/agent-sessions.json        会话索引（{ version, sessions: AgentSessionMeta[] }）
-~/.proma/agent-sessions/<id>.jsonl   单会话消息，JSONL（一行一条 JSON）
+~/.proma-agent-next/agent-sessions.json        会话索引（{ version, sessions: AgentSessionMeta[] }）
+~/.proma-agent-next/agent-sessions/<id>.jsonl   单会话消息，JSONL（一行一条 JSON）
 ```
 
-开发模式（`PROMA_DEV=1` 或 Proma 未打包）数据在 `~/.proma-dev/`。CLI 用 `--dev` 或 `--config-dir` 切换。
+**开发模式**（`PROMA_DEV=1` 或开发构建环境）：
+```
+~/.proma-agent-next-dev/agent-sessions.json
+~/.proma-agent-next-dev/agent-sessions/<id>.jsonl
+```
+
+CLI 用 `--dev` 或 `--config-dir` 切换。
+
+> **安全隔离红线**：明确不得访问或写入原版数据目录（如 `~/.proma` 与 `~/.proma-dev`），除非用户在当前对话中明确单独授权。
 
 ## 两种会话格式（CLI 自动识别，无需关心）
 
@@ -57,7 +68,7 @@
 ```
 @proma/session-core   解析 / 快照去重 / outline / search / select / render —— 真源
   └─ /node 子入口      readSessionMessages（文件 IO，含 node:fs）
-apps/cli (proma)      命令路由薄壳，调用 core
+apps/cli              命令路由薄壳（优先 "$PROMA_CLI"，或 proma-agent-next，禁止裸 proma），调用 core
 default-skills/session-cleaner  本技能，教 Agent 调 CLI
 ```
 

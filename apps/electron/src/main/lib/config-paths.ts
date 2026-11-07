@@ -2,7 +2,7 @@
  * 配置路径工具
  *
  * 管理 Proma 应用的本地配置文件路径。
- * 所有用户配置存储在 ~/.proma/ 目录下。
+ * 独立构建使用 ~/.proma-agent-next/，不会默认读写现有 Proma 配置。
  */
 
 import { createHash } from 'node:crypto'
@@ -11,32 +11,33 @@ import { mkdirSync, existsSync, cpSync, rmSync, readdirSync, readFileSync, copyF
 import { homedir } from 'node:os'
 import { rmSyncWithRetry } from './fs-retry'
 import { readJsonFileSafe, writeJsonFileAtomic } from './safe-file'
+import { getIndependentConfigDirName } from '@proma/shared/config'
 
 /**
  * 获取配置目录名称
  *
- * 开发模式下返回 '.proma-dev'，正式版本返回 '.proma'。
+ * 开发模式和正式版本均使用与上游不同的目录。
  *
  * 检测优先级：
  * 1. PROMA_DEV=1 环境变量（显式覆盖）
  * 2. Electron app.isPackaged（未打包 = 开发模式）
- * 3. 兜底 '.proma'
+ * 3. 无 Electron 时按独立正式版处理
  */
 let _configDirName: string | undefined
 
 export function getConfigDirName(): string {
   if (_configDirName === undefined) {
-    if (process.env.PROMA_DEV === '1') {
-      _configDirName = '.proma-dev'
-    } else {
+    let isDevelopment = process.env.PROMA_DEV === '1'
+    if (!isDevelopment) {
       try {
         const { app } = require('electron')
-        _configDirName = app.isPackaged ? '.proma' : '.proma-dev'
+        if (typeof app?.isPackaged === 'boolean') isDevelopment = !app.isPackaged
       } catch {
-        _configDirName = '.proma'
+        isDevelopment = false
       }
     }
-    const mode = _configDirName === '.proma-dev' ? '开发模式' : '正式版本'
+    _configDirName = getIndependentConfigDirName(isDevelopment)
+    const mode = isDevelopment ? '开发模式' : '正式版本'
     console.log(`[配置] 配置目录: ~/${_configDirName}/（${mode}）`)
   }
   return _configDirName
@@ -45,7 +46,7 @@ export function getConfigDirName(): string {
 /**
  * 获取配置目录路径
  *
- * 开发模式返回 ~/.proma-dev/，正式版本返回 ~/.proma/。
+ * 开发模式返回 ~/.proma-agent-next-dev/，正式版本返回 ~/.proma-agent-next/。
  * 如果目录不存在则自动创建。
  */
 export function getConfigDir(): string {
@@ -439,18 +440,23 @@ export function getDefaultSkillsDir(): string {
 /**
  * 获取打包进 App 的 proma CLI 二进制路径。
  *
- * 打包模式下从 process.resourcesPath/bin 取（electron-builder extraResources 注入）。
- * 开发模式下没有编译二进制——返回 undefined，由调用方回退到源码运行
- * （bun apps/cli/src/index.ts）。
+ * 打包模式从 process.resourcesPath/bin 取；开发模式仅使用本仓库编译的 resources/bin。
+ * 未构建时返回 undefined，绝不回退到系统 PATH 中可能属于旧版的命令。
  *
  * @returns 二进制绝对路径；不存在时返回 undefined
  */
 export function getBundledCliPath(): string | undefined {
-  const { app } = require('electron')
-  if (!app.isPackaged) return undefined
-  const binName = process.platform === 'win32' ? 'proma.exe' : 'proma'
-  const cliPath = join(process.resourcesPath, 'bin', binName)
-  return existsSync(cliPath) ? cliPath : undefined
+  try {
+    const { app } = require('electron')
+    if (typeof app?.isPackaged !== 'boolean') return undefined
+    const binName = process.platform === 'win32' ? 'proma-agent-next.exe' : 'proma-agent-next'
+    const candidates = app.isPackaged
+      ? [join(process.resourcesPath, 'bin', binName)]
+      : [join(__dirname, '../resources/bin', binName), join(__dirname, '../../../resources/bin', binName)]
+    return candidates.find((path) => existsSync(path))
+  } catch {
+    return undefined
+  }
 }
 
 /**

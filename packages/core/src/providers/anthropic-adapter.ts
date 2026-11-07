@@ -375,10 +375,10 @@ export class AnthropicAdapter implements ProviderAdapter {
 
     const requestBody = JSON.stringify(body)
 
-    // 调试：开启 PROMA_DEBUG_REQUEST 时打印请求体，便于排查思考+工具场景的消息结构
+    // 调试：只打印供应商标识，不输出模型名、草稿、历史消息或原始请求体。
     const procReq = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
     if (procReq?.env?.PROMA_DEBUG_REQUEST) {
-      console.log('[Request]', this.providerType, input.modelId, '→', requestBody.slice(0, 4000))
+      console.log('[Request]', this.providerType)
     }
 
     return {
@@ -393,10 +393,12 @@ export class AnthropicAdapter implements ProviderAdapter {
       const event = JSON.parse(jsonLine) as AnthropicSSEEvent
       const events: StreamEvent[] = []
 
-      // 调试：开启 PROMA_DEBUG_SSE 时打印原始事件，便于排查 Provider 的 SSE 格式差异
+      // 调试：开启 PROMA_DEBUG_SSE 时仅打印非敏感结构元数据（供应商与事件类型），绝不输出原始 SSE JSON 或文本响应
       const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
       if (proc?.env?.PROMA_DEBUG_SSE) {
-        console.log('[SSE]', jsonLine.slice(0, 400))
+        // event.type 来自上游响应，不可信时也不能直接写日志。
+        const allowed = ['message_start', 'message_delta', 'message_stop', 'content_block_start', 'content_block_delta', 'content_block_stop', 'ping', 'error']
+        console.log('[SSE]', this.providerType, allowed.includes(event?.type) ? event.type : 'unknown')
       }
 
       // 内容块开始

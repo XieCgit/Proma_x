@@ -32,7 +32,7 @@ mock.module('node:os', () => ({
 }))
 
 function writeChannels(channels: unknown[]): void {
-  const configDir = join(tempHome, '.proma')
+  const configDir = join(tempHome, '.proma-agent-next')
   mkdirSync(configDir, { recursive: true })
   writeFileSync(
     join(configDir, 'channels.json'),
@@ -49,7 +49,7 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  rmSync(join(tempHome, '.proma'), { recursive: true, force: true })
+  rmSync(join(tempHome, '.proma-agent-next'), { recursive: true, force: true })
 })
 
 afterAll(() => {

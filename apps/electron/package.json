@@ -1,7 +1,7 @@
 {
   "name": "@proma/electron",
-  "version": "0.19.58",
-  "description": "Proma，为专业用户设计的 Agent",
+  "version": "0.19.59-agentnext.0",
+  "description": "Proma Agent Next，基于 Proma 开源社区版的独立构建",
   "main": "dist/main.cjs",
   "author": {
     "name": "ErlichLiu",
@@ -10,8 +10,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run scripts/dev-kill.ts --vite && concurrently -k -n vite,electron -c blue,green \"bun run dev:vite\" \"bun run dev:electron\"",
-    "dev:split": "bash scripts/dev-split.sh",
+    "dev": "bun run build:renderer && bun run dev:electron",
+    "dev:core": "bun run build:main && bun run build:agent-runtime && bun run build:terminal-runtime && bun run build:preload && bun run build:renderer && bun run build:cli && bun run ensure:node-pty-helper && bun run build:resources && electron .",
+    "dev:split": "echo '独立版暂不支持分屏热重载，请运行 bun run dev' && exit 1",
     "dev:vite": "vite dev",
     "dev:kill": "bun run scripts/dev-kill.ts",
     "dev:electron": "bun run dev:kill && bun run sync:runtime-deps:dev && bun run rebuild:node-pty && bun run build:native-helpers && bun run prepare:officecli && bun run build:resources && bun run scripts/dev-bundle-readiness.ts --prepare && concurrently -k -n main,agent-runtime,terminal-runtime,preload,app -c yellow,red,blue,magenta,cyan \"bun run watch:main\" \"bun run watch:agent-runtime\" \"bun run watch:terminal-runtime\" \"bun run watch:preload\" \"bun run scripts/dev-bundle-readiness.ts --wait && bunx electronmon .\"",

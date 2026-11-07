@@ -6,7 +6,8 @@
 # 不会将应用静默降级为 --no-sandbox。
 set -eu
 
-APP_DIR="/opt/Proma"
+# 对应 electron-builder 的独立 productName，禁止修改上游 /opt/Proma。
+APP_DIR="/opt/Proma Agent Next"
 SANDBOX="$APP_DIR/chrome-sandbox"
 
 if [ -f "$SANDBOX" ]; then

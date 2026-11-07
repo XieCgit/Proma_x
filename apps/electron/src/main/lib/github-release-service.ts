@@ -9,6 +9,9 @@ import type {
   GitHubReleaseListOptions,
 } from '@proma/shared'
 
+/** 尚未配置独立仓库发布源，禁止把上游版本误当成独立版更新。 */
+const INDEPENDENT_RELEASE_SOURCE_CONFIGURED = false
+
 /** GitHub API 基础 URL */
 const GITHUB_API_BASE = 'https://api.github.com'
 
@@ -79,6 +82,7 @@ async function fetchFromGitHub<T>(endpoint: string): Promise<T> {
  * @returns 最新的 Release，如果没有则返回 null
  */
 export async function getLatestRelease(): Promise<GitHubRelease | null> {
+  if (!INDEPENDENT_RELEASE_SOURCE_CONFIGURED) return null
   try {
     const release = await fetchFromGitHub<GitHubRelease>('/releases/latest')
     console.log(`[GitHub Release] 获取最新 Release: v${release.tag_name}`)
@@ -98,6 +102,7 @@ export async function getLatestRelease(): Promise<GitHubRelease | null> {
 export async function listReleases(
   options: GitHubReleaseListOptions = {}
 ): Promise<GitHubRelease[]> {
+  if (!INDEPENDENT_RELEASE_SOURCE_CONFIGURED) return []
   const {
     perPage = 10,
     page = 1,
@@ -166,6 +171,7 @@ export async function listReleases(
  * @returns 指定的 Release，如果没有则返回 null
  */
 export async function getReleaseByTag(tag: string): Promise<GitHubRelease | null> {
+  if (!INDEPENDENT_RELEASE_SOURCE_CONFIGURED) return null
   try {
     // 检查缓存
     const cached = tagCache.get(tag)

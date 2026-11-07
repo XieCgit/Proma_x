@@ -5,7 +5,7 @@
  * 外部应用前台时，显示无焦点、无转写文本的轻量状态条，避免用户失去听写反馈。
  */
 
-import { app, BrowserWindow, screen, type BrowserWindowConstructorOptions } from 'electron'
+import { BrowserWindow, screen, type BrowserWindowConstructorOptions } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { VOICE_DICTATION_IPC_CHANNELS, type VoiceDictationOutputMode, type VoiceDictationShownEvent } from '../../types'
@@ -189,13 +189,9 @@ function getOrCreateVoiceIndicatorWindow(): BrowserWindow {
     sendIndicatorState()
   })
 
-  if (app.isPackaged) {
-    indicator.loadFile(join(__dirname, 'renderer', 'index.html'), {
-      query: { window: 'voice-dictation-indicator' },
-    })
-  } else {
-    indicator.loadURL('http://127.0.0.1:5173?window=voice-dictation-indicator')
-  }
+  indicator.loadFile(join(__dirname, 'renderer', 'index.html'), {
+    query: { window: 'voice-dictation-indicator' },
+  })
 
   voiceIndicatorWindow = indicator
   return indicator
@@ -259,7 +255,6 @@ function isTrustedVoiceDictationUrl(rawUrl: string | undefined): boolean {
 
   try {
     const parsed = new URL(rawUrl)
-    if (!app.isPackaged && parsed.origin === 'http://127.0.0.1:5173') return true
     return parsed.protocol === 'file:'
   } catch {
     return false

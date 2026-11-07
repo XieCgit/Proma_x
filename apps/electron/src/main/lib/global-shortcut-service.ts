@@ -18,13 +18,6 @@ const globalCallbacks = new Map<string, () => void>()
 /** 当前注册的 accelerator → 快捷键 ID 映射（用于注销） */
 const registeredAccelerators = new Map<string, string>()
 
-/** 默认全局快捷键配置 */
-const GLOBAL_SHORTCUT_DEFAULTS: Record<string, { mac: string; win: string }> = {
-  'quick-task': { mac: 'Alt+Space', win: 'Alt+Space' },
-  'show-main-window': { mac: 'CommandOrControl+Shift+P', win: 'CommandOrControl+Shift+P' },
-  'voice-dictation': { mac: 'Ctrl+`', win: 'Ctrl+`' },
-}
-
 const isMac = process.platform === 'darwin'
 const VOICE_DICTATION_SHORTCUT_ID = 'voice-dictation'
 
@@ -37,29 +30,19 @@ function shouldRegisterGlobalShortcut(id: string): boolean {
  * 获取某全局快捷键当前生效的 Electron accelerator 字符串
  *
  * 返回值：
- * - 非空字符串：当前生效的 accelerator（用户自定义或默认值）
- * - `null`：用户已主动禁用此快捷键，跳过 globalShortcut.register
+ * - 非空字符串：用户显式设置后的 accelerator
+ * - `null`：未显式设置或已禁用，跳过 globalShortcut.register
  *
  * 将 Cmd 统一转为 Electron 的 CommandOrControl；Ctrl 保持为物理 Control 键。
  */
 function getGlobalAccelerator(id: string): string | null {
   const settings = getSettings()
   const override = settings.shortcutOverrides?.[id]
+  // 独立版默认不抢占系统全局快捷键；仅在用户显式设置后注册。
+  if (!override) return null
 
-  let accelerator: string
-  if (override) {
-    const customAccel = isMac ? override.mac : override.win
-    if (customAccel === null) return null
-    if (customAccel) {
-      accelerator = customAccel
-    } else {
-      const def = GLOBAL_SHORTCUT_DEFAULTS[id]
-      accelerator = def ? (isMac ? def.mac : def.win) : ''
-    }
-  } else {
-    const def = GLOBAL_SHORTCUT_DEFAULTS[id]
-    accelerator = def ? (isMac ? def.mac : def.win) : ''
-  }
+  const accelerator = isMac ? override.mac : override.win
+  if (typeof accelerator !== 'string' || !accelerator.trim()) return null
 
   // 转换为 Electron 标准格式
   return accelerator
@@ -84,7 +67,7 @@ function registerOne(id: string): boolean {
 
   const accelerator = getGlobalAccelerator(id)
   if (accelerator === null) {
-    console.log(`[全局快捷键] 跳过注册: ${id} 已被用户禁用`)
+    console.log(`[全局快捷键] 跳过注册: ${id} 未显式配置或已禁用`)
     return false
   }
   if (!accelerator) return false

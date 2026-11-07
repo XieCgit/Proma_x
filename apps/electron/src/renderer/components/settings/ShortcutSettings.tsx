@@ -375,7 +375,7 @@ export function ShortcutSettings(): React.ReactElement {
             if (!registered) {
               toast.warning('已恢复默认，但全局快捷键当前未注册', {
                 id: 'shortcut-save-warning',
-                description: '可能是功能未启用，或默认组合已被系统/其他应用占用。',
+                description: '独立版全局快捷键默认不注册，请录制并保存组合后启用。',
               })
               return
             }
@@ -454,7 +454,7 @@ export function ShortcutSettings(): React.ReactElement {
         if (hasUnregisteredGlobal) {
           toast.warning('已恢复全部默认；部分全局快捷键当前未注册', {
             id: 'shortcut-save-warning',
-            description: '可能是对应功能未启用，或默认组合已被系统/其他应用占用。',
+            description: '独立版全局快捷键默认不注册，请录制并保存组合后启用。',
           })
           return
         }
@@ -502,7 +502,7 @@ export function ShortcutSettings(): React.ReactElement {
       {/* 描述 + 恢复全部按钮 */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          点击快捷键可自定义，录制后点击保存生效，按 Esc 取消录制
+          点击快捷键可自定义，录制后点击保存生效，按 Esc 取消录制。为避免与其他应用冲突，独立版全局快捷键默认不注册；请录制并保存后启用。
         </p>
         {hasOverrides && (
           <Button

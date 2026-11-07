@@ -13,6 +13,7 @@ import path from 'path'
 import { URL } from 'url'
 
 import { app, BrowserWindow, shell } from 'electron'
+import { INDEPENDENT_INSTALLER_TEMP_DIR } from '@proma/shared/config'
 
 import {
   INSTALLER_IPC_CHANNELS,
@@ -28,7 +29,7 @@ const activeDownloads = new Map<string, () => void>()
  * 构造安装包的本地缓存目录
  */
 function getInstallerDir(): string {
-  return path.join(app.getPath('temp'), 'proma-installers')
+  return path.join(app.getPath('temp'), INDEPENDENT_INSTALLER_TEMP_DIR)
 }
 
 /**

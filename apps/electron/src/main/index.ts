@@ -1,16 +1,9 @@
+// 此 import 必须先于其他业务模块，避免上游模块提前缓存旧版 userData。
+import './bootstrap-paths'
 import { app, BrowserWindow, dialog, Menu, nativeTheme, protocol, screen, shell } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { existsSync } from 'fs'
-
-// Dev 与正式版使用独立的 userData 目录，避免共享 Chromium SingletonLock 导致 dev 启动被静默退出
-// 必须在任何会读取 userData 路径的模块加载之前执行
-if (!app.isPackaged) {
-  // 多个 worktree 可显式隔离开发实例，避免其中一个分支抢走另一分支的 Chromium SingletonLock。
-  const instance = process.env.PROMA_DEV_INSTANCE?.replace(/[^a-zA-Z0-9_-]/g, '')
-  if (instance) app.setName(`Proma-${instance}`)
-  app.setPath('userData', join(app.getPath('appData'), instance ? `@proma/electron-dev-${instance}` : '@proma/electron-dev'))
-}
 
 // 单实例锁：防止重复启动同一个版本（dev/prod 因 userData 已隔离，互不影响）
 //
@@ -22,7 +15,7 @@ if (!app.isPackaged) {
 if (!app.requestSingleInstanceLock()) {
   console.warn(
     '[启动] 已有 Proma 进程持有单实例锁，本次启动将退出。\n' +
-      '  如果窗口未出现，可能旧进程已卡死。请运行 `killall Proma` 后重试。',
+      '  如果窗口未出现，请检查 Proma Agent Next 的运行状态，不要结束其他 Proma 进程。',
   )
   app.quit()
 } else {
@@ -450,14 +443,6 @@ function saveMainWindowState(): void {
   })
 }
 
-function isDevServerNavigation(url: string): boolean {
-  try {
-    return new URL(url).origin === 'http://127.0.0.1:5173'
-  } catch {
-    return false
-  }
-}
-
 function createWindow(): void {
   const iconPath = getIconPath()
   const iconExists = existsSync(iconPath)
@@ -507,14 +492,13 @@ function createWindow(): void {
   // Load the renderer
   const isDev = !app.isPackaged
   const rendererPath = join(__dirname, 'renderer', 'index.html')
-  const rendererEntryUrl = isDev ? 'http://127.0.0.1:5173' : pathToFileURL(rendererPath).toString()
+  // 即使是开发模式也只加载本仓库构建出的文件，避免向其他本机服务暴露 preload。
+  const rendererEntryUrl = pathToFileURL(rendererPath).toString()
   const loadMainRenderer = (): Promise<void> => {
     if (!mainWindow || mainWindow.isDestroyed()) {
       return Promise.reject(new Error('主窗口已销毁'))
     }
-    return isDev
-      ? mainWindow.loadURL(rendererEntryUrl)
-      : mainWindow.loadFile(rendererPath)
+    return mainWindow.loadFile(rendererPath)
   }
 
   // 主 Renderer 无法加载或崩溃时，不能让启动页无限停留；优先有限次数自动恢复。
@@ -627,8 +611,6 @@ function createWindow(): void {
       rendererRecoveryAttempts = []
       return
     }
-    // 允许开发模式下的 Vite HMR 热重载
-    if (isDev && isDevServerNavigation(url)) return
     event.preventDefault()
     if (url.startsWith('http://') || url.startsWith('https://')) {
       shell.openExternal(url)
@@ -831,7 +813,8 @@ async function bootstrap(): Promise<void> {
         openAgentSession: (sessionId, title) => {
           sendToMainWindow(TRAY_IPC_CHANNELS.OPEN_AGENT_SESSION, { sessionId, title })
         },
-        enabled: () => getSettings().agentIsland?.enabled !== false,
+        // 独立版默认关闭原生悬浮层，避免与正在运行的其他应用重叠。
+        enabled: () => getSettings().agentIsland?.enabled === true,
       })
     })
   }
@@ -913,9 +896,9 @@ function handleBootstrapFailure(err: unknown): void {
       `部分功能可能不可用：\n\n${message}\n\n` +
         `日志位置：${app.getPath('logs')}\n\n` +
         `常见原因与排查：\n` +
-        `1. 旧版 Proma 进程未退出（终端运行 killall Proma 后重试）\n` +
-        `2. ~/.proma/ 配置损坏（重命名 ~/.proma 后重启）\n` +
-        `3. 系统 Keychain 无法解密保存的凭证（删除 ~/.proma/feishu.json 等后重新登录）\n\n` +
+        `1. 当前 Proma Agent Next 的旧进程未退出（请只检查本应用的进程）\n` +
+        `2. 独立版本配置不可用：请检查本应用的数据目录，不要重命名或删除原版 Proma 数据。\n` +
+        `3. 系统密钥环无法解密独立版本凭据：请先备份并在确认后重新配置。\n\n` +
         `如需协助请到 GitHub Issues 反馈。`,
     )
   } catch {

@@ -23,6 +23,8 @@ import { AgentHeader } from './AgentHeader'
 import { AgentMessageQueue } from './AgentMessageQueue'
 import { SkillMentionNamesProvider } from './SkillMentionNamesProvider'
 import { ContextUsageBadge } from './ContextUsageBadge'
+import { SessionUsageBadge } from './SessionUsageBadge'
+import { PromptEnhancementDialog } from './PromptEnhancementDialog'
 import { PermissionBanner } from './PermissionBanner'
 import { PermissionModeSelector } from './PermissionModeSelector'
 import { AskUserBanner } from './AskUserBanner'
@@ -2797,6 +2799,18 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
     setInputHasContent(hasContent)
   }, [])
   const hasTextInput = inputHasContent
+  const [promptEnhancementDraft, setPromptEnhancementDraft] = React.useState<{
+    draft: string; channelId: string; channelLabel: string; modelId: string; sessionId: string
+  } | null>(null)
+  React.useEffect(() => { setPromptEnhancementDraft(null) }, [sessionId])
+  const handleOpenPromptEnhancement = React.useCallback(() => {
+    const draft = richTextInputRef.current?.getMarkdown() ?? ''
+    if (!draft.trim()) { toast.error('请先输入需要增强的提示词'); return }
+    if (draft.length > 12_000) { toast.error('提示词不能超过 12000 个字符'); return }
+    if (!agentChannelId || !agentModelId) { toast.error('请先选择渠道和模型'); return }
+    const channelLabel = globalChannels.find((channel) => channel.id === agentChannelId)?.name ?? agentChannelId
+    setPromptEnhancementDraft({ draft, channelId: agentChannelId, channelLabel, modelId: agentModelId, sessionId })
+  }, [agentChannelId, agentModelId, globalChannels, sessionId])
   const canSend = !isStopping && messagesLoaded && (streaming || !messagesRefreshing) && (hasTextInput || pendingFiles.length > 0 || !!suggestion) && agentChannelId !== null && hasAvailableModel && (!streaming || hasTextInput)
 
   const inputToolbarItems = React.useMemo<ToolbarItem[]>(() => [
@@ -2865,6 +2879,22 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
       ),
     },
     {
+      key: 'prompt-enhancement',
+      node: (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className={inputToolbarButtonClass}
+              onClick={handleOpenPromptEnhancement} disabled={isComposerDisabled || !agentModelId}
+              aria-label="增强提示词">
+              <Sparkles className="size-[17px]" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top"><p>增强提示词（发送前确认）</p></TooltipContent>
+        </Tooltip>
+      ),
+    },
+    { key: 'session-usage', node: <SessionUsageBadge messages={persistedSDKMessages} /> },
+    {
       key: 'context-usage',
       node: (
         <ContextUsageBadge
@@ -2877,6 +2907,10 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
       ),
     },
   ], [
+    persistedSDKMessages,
+    handleOpenPromptEnhancement,
+    isComposerDisabled,
+    agentModelId,
     planQuotaChannelId,
     planQuotaChannelUpdatedAt,
     isCodexFastModeAvailable,
@@ -3158,6 +3192,16 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
         </div>
       </div>
 
+    {promptEnhancementDraft && promptEnhancementDraft.sessionId === sessionId && (
+      <PromptEnhancementDialog
+        open
+        onOpenChange={(open) => { if (!open) setPromptEnhancementDraft(null) }}
+        initialDraft={promptEnhancementDraft.draft}
+        channelId={promptEnhancementDraft.channelId}
+        channelLabel={promptEnhancementDraft.channelLabel}
+        modelId={promptEnhancementDraft.modelId}
+      />
+    )}
     <Dialog open={todoDialogOpen} onOpenChange={setTodoDialogOpen}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>标记为 Todo</DialogTitle></DialogHeader>

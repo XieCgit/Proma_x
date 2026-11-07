@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 import { WINDOWS_AGENT_ISLAND_IPC_CHANNELS } from '../types'
 import type { NativeAgentIslandSnapshot } from '@proma/shared'
@@ -65,13 +65,9 @@ export class AgentStatusHoverWindow {
       this.scheduleHide()
     })
 
-    if (app.isPackaged) {
-      this.win.loadFile(join(__dirname, 'renderer', 'index.html'), {
-        query: { window: 'agent-status-hover' },
-      })
-    } else {
-      this.win.loadURL('http://127.0.0.1:5173?window=agent-status-hover')
-    }
+    this.win.loadFile(join(__dirname, 'renderer', 'index.html'), {
+      query: { window: 'agent-status-hover' },
+    })
   }
 
   onTrayMouseEnter(bounds: Electron.Rectangle): void {

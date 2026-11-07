@@ -2,14 +2,14 @@
 name: agent-collaboration
 description: Proma 协作子 Agent Skill。当需要并行探索多个方向（多样性探索）、对抗性审查验证已有方案、或多个长耗时独立任务需要真实可见的子会话时触发。用于判断是否以及如何调用 Proma 内置 collaboration 工具创建协作子会话。简单搜索、短调研、单文件修改、一次性代码审查由父会话直接使用普通工具完成。
 group: proma
-version: "1.2.0"
+version: "1.2.1"
 ---
 
 # Proma Agent Collaboration
 
 你负责判断何时把复杂任务交给 Workflow / Skill 工作流，或拆给真实可见的 Proma 协作子 Agent 会话。
 
-Proma 已提供内置 `collaboration` MCP 工具。你必须通过这些工具创建、等待、查看和停止协作子会话，不要用 Bash、脚本或直接修改 `~/.proma/agent-sessions.json` 的方式创建会话。
+Proma 已提供内置 `collaboration` MCP 工具。你必须通过这些工具创建、等待、查看和停止协作子会话，不要用 Bash、脚本或直接修改会话文件的方式创建会话（按实际运行模式与系统上下文选择：生产/默认路径为 `~/.proma-agent-next/agent-sessions.json`，开发模式为 `~/.proma-agent-next-dev/agent-sessions.json`；明确不得访问或写入原版数据目录 `~/.proma`，除非用户明确单独授权）。
 
 可用工具：
 

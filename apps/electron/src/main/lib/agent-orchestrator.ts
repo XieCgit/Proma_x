@@ -75,6 +75,7 @@ import { getAgentVaultRoots, getVaultUserContext } from './vault-service'
 import { buildPiMcpTools } from './adapters/pi-mcp-tools'
 import { buildAgentRuntimeEnv, type AgentRuntimeEnv } from './agent-runtime-env'
 import { isVisibleRunMessage } from './agent-run-message-visibility'
+import { releaseActiveRunOnPreflightFailure } from './active-run-cleanup'
 import { resolvePiThinkingLevel } from './agent-thinking-level'
 import { resolvePiReasoningCapability } from './adapters/pi-model-registry'
 import { generateCodexTitle } from './adapters/pi-codex-title-generator'
@@ -926,14 +927,6 @@ export class AgentOrchestrator {
     const runGeneration = input.runGeneration ?? this.reserveRunGeneration(sessionId)
     this.activeSessions.set(sessionId, runGeneration)
     this.activeSessionStartedAt.set(sessionId, streamStartedAt)
-    callbacks.onRunStarted?.({
-      startedAt: streamStartedAt,
-      runGeneration,
-      ...(initialUserMessageUuid ? {
-        userMessage: rawUserMessage ?? userMessage,
-        userMessageUuid: initialUserMessageUuid,
-      } : {}),
-    })
 
     const releaseActiveRun = (): void => {
       // 在发送 STREAM_COMPLETE 前释放 active slot，避免渲染进程已进入空闲态、
@@ -963,13 +956,24 @@ export class AgentOrchestrator {
       callbacks.onComplete(messages, { ...opts, runGeneration })
     }
 
-    // 3. 构建 Pi runtime 环境（代理与 Windows shell 配置）。
-    const proxyUrl = await getEffectiveProxyUrl()
-    const runtimeEnv = buildAgentRuntimeEnv({
-      proxyUrl,
-      runtimeStatus: getRuntimeStatus(),
-      windowsShellPreference: appSettings.windowsShellPreference,
-    })
+    // 槽位已占用而主循环的 finally 尚未建立；回调或代理准备失败时必须按代际释放。
+    const { proxyUrl, runtimeEnv } = await releaseActiveRunOnPreflightFailure(async () => {
+      callbacks.onRunStarted?.({
+        startedAt: streamStartedAt,
+        runGeneration,
+        ...(initialUserMessageUuid ? {
+          userMessage: rawUserMessage ?? userMessage,
+          userMessageUuid: initialUserMessageUuid,
+        } : {}),
+      })
+      const proxyUrl = await getEffectiveProxyUrl()
+      const runtimeEnv = buildAgentRuntimeEnv({
+        proxyUrl,
+        runtimeStatus: getRuntimeStatus(),
+        windowsShellPreference: appSettings.windowsShellPreference,
+      })
+      return { proxyUrl, runtimeEnv }
+    }, releaseActiveRun)
 
     // 4. 读取已有的 SDK session ID（用于 resume）
     let existingSdkSessionId = sessionMeta?.sdkSessionId
